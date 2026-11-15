@@ -131,7 +131,7 @@ night_difference <- pre_storm - blackout
 night_difference <- rast(night_difference)
 
 # Classify areas that experienced drop of more than 200 nW cm-2sr-1 (blackout)
-blackout_rcl <- matrix(c(-Inf, 200, 0, # no blackout
+blackout_rcl <- matrix(c(-Inf, 200, NA, # no blackout
                            200, Inf, 1), # experienced blackout
                            ncol = 3, byrow = TRUE) 
 blackout_areas <- classify(night_difference, rcl = blackout_rcl)
