@@ -12,8 +12,8 @@
 │   2021-texas-blackout-analysis.qmd          # quarto document containing assignment code
 └───.gitignore
      └───data                                 # folder containing data files for assignment
-         └───gis_osm_buildings_a_free_1.gpkg  # data for Houston area houses from OpenStreetMap
-         └───gis_osm_roads_free_1.gpkg        # data fro Texas highways from OpenStreetMap
+         └───gis_osm_buildings_a_free_1.gpkg  # Houston area houses from OpenStreetMap
+         └───gis_osm_roads_free_1.gpkg        # Texas highways from OpenStreetMap
          └───VNP46A1                          # Houston area Visible Infrared Imaging Radiometer Suite (VIIRS) data
             └───VIIRS data files
 ```
