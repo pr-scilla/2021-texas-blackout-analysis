@@ -1,0 +1,154 @@
+---
+title: "EDS 223: Homework Assignment 4"
+subtitle: "February 2021 Texas Power Crisis Analysis"
+author: "Priscilla Pierce"
+date: 11-21-2026
+format: typst
+execute:
+  echo: true
+  warning: true
+  message: false
+---
+
+# February 2021 Texas Power Crisis Analysis
+
+## Introduction
+
+## Load Packages
+
+```{r}
+#| output: False
+
+library(sf)          # vector handling
+library(stars)       # raster handling
+library(terra)       # raster handling
+library(tidyverse)
+library(tmap)        # map making
+library(gt)          # table formatting
+```
+
+## Prepare Data
+
+### Load Data
+
+```{r}
+# Load February 7, 2021 VIIRS data for Houston tiles
+VIIRS_feb07a <- stars::read_stars('data/VNP46A1/VNP46A1.A2021038.h08v05.001.2021039064328.tif')
+VIIRS_feb07b <- stars::read_stars('data/VNP46A1/VNP46A1.A2021038.h08v06.001.2021039064329.tif')
+# Combine February 7, 2021 tiles
+pre_storm <- st_mosaic(VIIRS_feb07a, VIIRS_feb07b)
+
+# Load February 16, 2021 VIIRS data for Houston tiles
+VIIRS_feb16a <- stars::read_stars('data/VNP46A1/VNP46A1.A2021047.h08v05.001.2021048091106.tif')
+VIIRS_feb16b <- stars::read_stars('data/VNP46A1/VNP46A1.A2021047.h08v06.001.2021048091105.tif')
+# Combine February 16, 2021 tiles
+blackout <- st_mosaic(VIIRS_feb16a, VIIRS_feb16b)
+
+# Load data for Houston area houses
+houses <- st_read('data/gis_osm_buildings_a_free_1.gpkg', query = "SELECT *
+FROM gis_osm_buildings_a_free_1 
+WHERE (type IS NULL AND name IS NULL) 
+OR type in ('residential', 'apartments', 'house', 'static_caravan', 'detached')", quiet = TRUE)
+
+# Load data for Texas highways
+highways <- st_read('data/gis_osm_roads_free_1.gpkg', query = "SELECT * FROM gis_osm_roads_free_1 WHERE fclass='motorway'", quiet = TRUE)
+```
+
+### Check Coordinate Reference Systems
+
+```{r}
+# Verify that pre_storm and blackout raster CRSs match
+if(st_crs(pre_storm) == st_crs(blackout)) {
+  print(paste('CRS match. CRS is:', st_crs(pre_storm)))
+}else{
+  warning('CRS do not match')
+  print(paste('pre_storm CRS is', st_crs(pre_storm)))
+  print(paste('blackout CRS is', st_crs(blackout)))
+}
+```
+
+```{r}
+# Verify that houses and highways vector CRSs match
+if(st_crs(highways) == st_crs(houses)) {
+  print(paste('CRS match. CRS is:', st_crs(highways)))
+}else{
+  warning('CRS do not match')
+  print(paste('highways CRS is', st_crs(highways)))
+  print(paste('houses CRS is', st_crs(houses)))
+}
+```
+
+The nighttime light data, houses data, and roads data all use the EPSG 4326 coordinate reference system.
+
+## Visualize blackout
+
+```{r}
+# Define Houston area
+houston_area <- st_bbox(c(xmin = -96.5, ymin = 29, xmax = -94.5, ymax = 30.5),
+                        crs = st_crs(pre_storm))
+
+# Crop pre storm and blackout rasters to Houston area
+pre_storm_crop <- st_crop(pre_storm, houston_area)
+blackout_crop <- st_crop(blackout, houston_area)
+
+# Set unrealistic radiance values to NA (values greater than 500)
+pre_storm_crop[pre_storm_crop > 500] <- NA
+blackout_crop[blackout_crop > 500] <- NA
+
+# Stack and name data layers for visualization
+feb_storm_stacked <- c(pre_storm_crop, blackout_crop)
+names(feb_storm_stacked) <- c("February 7, 2021 (Pre-Storm)", "February 16, 2021 (Blackout)")
+
+```
+
+```{r}
+#| fig-width: 9
+#| fig-height: 9
+#| out-width: "100%"
+
+# Visualize nighttime lights from February 7, 2021 and February 16, 2021
+blackout_map <- tm_shape(feb_storm_stacked) +
+      tm_raster(col.scale = tm_scale(values = "magma"),
+                col.legend = tm_legend(title = "Light Intensity\n(nW cm⁻²sr⁻¹)",
+                                       title.size = 0.7,
+                                       position = tm_pos_out('right'))) +
+      tm_facets(as.layers = FALSE, nrow = 2, free.scales = FALSE) +
+      tm_graticules(lwd = 0.25, col = "white", alpha = 0.5, labels.size = 0.4, labels.rot = c(90, 0)) +
+      tm_title("Houston, Texas Nighttime Light Radiance", 
+                fontface = "bold",
+                position = tm_pos_out("center", "top"))
+
+blackout_map
+```
+
+## Visualize homes that lost power
+
+```{r}
+# Calculate difference in night light intensity pre and post storm
+night_difference <- pre_storm - blackout
+
+# Convert to SpatRaster for terra operations
+night_difference <- rast(night_difference)
+
+# Classify areas that experienced drop of more than 200 nW cm-2sr-1 (blackout)
+blackout_rcl <- matrix(c(-Inf, 200, 0, # no blackout
+                           200, Inf, 1), # experienced blackout
+                           ncol = 3, byrow = TRUE) 
+blackout_areas <- classify(night_difference, rcl = blackout_rcl)
+blackout_areas <- st_as_stars(blackout_areas) # convert back to stars for stars operations
+
+# Vectorize blackout mask
+blackout_mask <- blackout_areas |> 
+                 st_as_sf() |> 
+                 st_make_valid()
+
+# Crop blackout mask to Houston area and reproject to EPSG:3083
+houston_blackout <- st_crop(blackout_mask, houston_area) |> st_transform(crs = "EPSG:3083")
+```
+
+## Estimated number of homes that lost power
+
+## Reflections and limitations
+
+## Data Sources
+Used figure 3 time series of residential Houston radiance values from this paper to help inform mask for realistic radiance values (< 500)https://www.researchgate.net/publication/335158311_Anisotropic_characteristic_of_artificial_light_at_night_-Systematic_investigation_with_VIIRS_DNB_multi-temporal_observations 
