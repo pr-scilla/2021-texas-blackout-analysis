@@ -125,6 +125,8 @@ blackout_map
 
 Identify all blackout areas in Houston:
 ```{r}
+#| warning: false
+
 # Calculate difference in night light intensity pre and post storm
 night_difference <- pre_storm - blackout
 
@@ -132,7 +134,7 @@ night_difference <- pre_storm - blackout
 night_difference <- rast(night_difference)
 
 # Classify areas that experienced drop of more than 200 nW cm-2sr-1 (blackout)
-blackout_rcl <- matrix(c(-Inf, 200, , # no blackout
+blackout_rcl <- matrix(c(-Inf, 200, NA, # no blackout
                            200, Inf, 1), # experienced blackout
                            ncol = 3, byrow = TRUE) 
 blackout_areas <- classify(night_difference, rcl = blackout_rcl)
@@ -148,13 +150,50 @@ houston_blackout <- st_crop(blackout_mask, houston_area) |> st_transform(crs = "
 ```
 
 Exclude areas near major highways from the analysis:
-
 ```{r}
+#| warning: false
+
+# Reproject highways data to EPSG:3083 (coordinate system unit of measure is meters)
+highways <- st_transform(highways, crs = "EPSG:3083")
+
+# Create 200 m buffer around highways
+highway_buffer_200m <- highways |> st_union() |> st_buffer(dist = 200)
+
+# Identify blackout areas further than 200 m from highways
+houston_blackout_exclude_hwy <- st_difference(houston_blackout, highway_buffer_200m)
 
 ```
 
 ## Visualize homes that lost power
 
+```{r}
+#| warning: false
+
+# Reproject houses data to EPSG:3083
+houses <- st_transform(houses, crs = "EPSG:3083")
+
+# Identify homes that experienced a blackout
+blackout_houses <- st_intersection(houses, houston_blackout_exclude_hwy)
+
+# Convert houses into points for mapping
+house_points <- st_point_on_surface(houses)
+blackout_house_points <- st_point_on_surface(blackout_houses)
+```
+
+```{r}
+
+# Assign colors
+all_houses_color <- "#278EF5"
+blackout_color <-  "#611503"
+
+houston_blackout_homes <- tm_basemap("OpenStreetMap") +
+      tm_shape(house_points) +
+      tm_symbols(fill = all_houses_color, shape = 15, size = 0.05) +
+      tm_shape(blackout_house_points) +
+      tm_symbols(fill = blackout_color, shape = 15, size = 0.05)
+
+houston_blackout_homes
+```
 ## Estimate number of homes that lost power
 
 ## Reflections and limitations
