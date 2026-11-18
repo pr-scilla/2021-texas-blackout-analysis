@@ -14,6 +14,8 @@ execute:
 
 ## Introduction
 
+During February 2021, severe winter storms caused widespread power grid outages in the state of Texas. This analysis explores the impacts of the power crisis on residential areas in Houston, Texas during the winter storms.
+
 ## Load Packages
 
 ```{r}
@@ -80,7 +82,11 @@ if(st_crs(highways) == st_crs(houses)) {
 
 The nighttime light data, houses data, and roads data all use the EPSG 4326 coordinate reference system.
 
-## Visualize blackout
+## Visualize Blackout
+
+To visualize the blackout, Houston-area data from NASA's Visible Infrared Imaging Radiometer Suite (VIIRS) for two clear nights were used: February 7, 2021 (before the storms) and February 16, 2021 (during the blackout).
+
+To exclude unrealistic values from appearing on the maps, the data were filtered to include only radiance values less than 500 nW cm-2sr-1. A time series of radiance values from Figure 3 in the paper *Anisotropic characteristic of artificial light at night - Systematic investigation with VIIRS DNB multi-temporal observations* showed that the highest radiance values for a residential area in Houston were in the 160 to 180 cm-2sr-1 range (Ma *et al.*). I used these numbers to help inform my conservative choice of realistic radiance values (\< 500 cm-2sr-1).
 
 ```{r}
 # Define Houston area
@@ -105,6 +111,8 @@ names(feb_storm_stacked) <- c("February 7, 2021 (Pre-Storm)", "February 16, 2021
 #| fig-width: 9
 #| fig-height: 9
 #| out-width: "100%"
+#| warning: false
+#| error: false
 
 # Visualize nighttime lights from February 7, 2021 and February 16, 2021
 blackout_map <- tm_shape(feb_storm_stacked) +
@@ -121,9 +129,12 @@ blackout_map <- tm_shape(feb_storm_stacked) +
 blackout_map
 ```
 
-## Identify blackout areas
+These maps visualize nighttime lights in the Houston area before (top map) and during (bottom map) the February 2021 power crisis. Dark areas in the bottom map are dispersed throughout the Houston area, indicating that power loss was widespread.
 
-Identify all blackout areas in Houston:
+## Identify Blackout Areas
+
+Areas that experienced a blackout were defined as cells within the VIIRS data that experienced a drop of more than 200 nW cm-2sr-1 between February 7 and February 16, 2021.
+
 ```{r}
 #| warning: false
 
@@ -149,7 +160,8 @@ blackout_mask <- blackout_areas |>
 houston_blackout <- st_crop(blackout_mask, houston_area) |> st_transform(crs = "EPSG:3083")
 ```
 
-Exclude areas near major highways from the analysis:
+Highways may have experienced changes in nighttime light radiance that were unrelated to power grid failure. To refine the analysis, areas near major highways were excluded.
+
 ```{r}
 #| warning: false
 
@@ -164,7 +176,9 @@ houston_blackout_exclude_hwy <- st_difference(houston_blackout, highway_buffer_2
 
 ```
 
-## Visualize homes that lost power
+## Visualize Homes That Lost Power
+
+Homes that experienced a drop in radiance of more than 200 nW cm-2sr-1 between February 7 and February 16, 2021 *and* were located further than 200 meters from a highway were identified as impacted by the blackout.
 
 ```{r}
 #| warning: false
@@ -181,22 +195,65 @@ blackout_house_points <- st_point_on_surface(blackout_houses)
 ```
 
 ```{r}
+#| fig-width: 9
+#| fig-height: 9
+#| out-width: "100%"
 
 # Assign colors
-all_houses_color <- "#278EF5"
-blackout_color <-  "#611503"
+all_houses_color <- "#fffddc"
+blackout_color <-  "#943524"
 
-houston_blackout_homes <- tm_basemap("OpenStreetMap") +
-      tm_shape(house_points) +
+houston_blackout_homes <- tm_basemap("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_5bb7_1_34c461c6b579795316bae83a") + # Add nighttime basemap
+      tm_graticules(lwd = 0.25, col = "gray", alpha = 0.7) + # Add latitude and longitude lines
+      tm_shape(house_points) + # Add houses
       tm_symbols(fill = all_houses_color, shape = 15, size = 0.05) +
-      tm_shape(blackout_house_points) +
-      tm_symbols(fill = blackout_color, shape = 15, size = 0.05)
-
+      tm_shape(blackout_house_points) + # Add houses that lost power
+      tm_symbols(fill = blackout_color, shape = 15, size = 0.05) +
+      tm_add_legend(fill = c(all_houses_color, blackout_color), 
+                    labels = c("Unimpacted", "Power Lost"), 
+                    position = tm_pos_out('right')) +
+      tm_title("Houston Area Residences Impacted By Power Crisis, February 16, 2021",
+                fontface = "bold",
+                position = tm_pos_out("center", "top"))
 houston_blackout_homes
 ```
-## Estimate number of homes that lost power
 
-## Reflections and limitations
+As shown in the map, residential power loss was not isolated to just one region of Houston. Homes in many neighborhoods throughout the city lost power during the February 2021 Texas power crisis.
+
+## Estimate the Number of Homes That Lost Power
+
+```{r}
+power_lost_houston <- tibble(
+  `Total Homes` = length(unique(houses$osm_id)), # Estimate of total homes
+  `Homes that Lost Power` = length(unique(blackout_houses$osm_id)), # Estimate of impacted homes
+  `Percentage of Homes that Lost Power` = paste((round(length(unique(blackout_houses$osm_id)) / length(unique(houses$osm_id)) * 100, digits = 1)), "%") # Percentage of impacted homes
+)
+
+power_lost_houston |> 
+  gt() |> 
+  tab_header(title = "Houston Residences Impacted By Power Crisis,\nFebruary 16, 2021")
+```
+
+Based on this analysis, an estimated 157,407 Houston residences out of 475,941 (33.1%) experienced power outages during the February 2021 storms.
+
+## Reflections and Limitations
+
+The February 2021 power crisis was not isolated to just one general region or neighborhood. Power loss during the storms was complex and widespread, with an estimated 33.1% of Houston area residences impacted by the blackouts. While these results are compelling, they provide only a limited snapshot of the extent of power grid failure. There were several nights during the February storms where there was too much cloud cover for satellite imagery to be useful. Analyzing power loss that occurred on additional nights beyond just February 16th would have helped provide a more accurate picture of the extent of the blackouts.
+
+## Data Access
+
+Data used in this assignment were accessed with permission through the [linked data folder](https://drive.google.com/file/d/1bTk62xwOzBqWmmT791SbYbHxnCdjmBtw/view) on the [EDS 223 Homework Assignment 4 page](https://eds-223-geospatial.github.io/assignments/HW4.html).
 
 ## Data Sources
-Used figure 3 time series of residential Houston radiance values from this paper to help inform mask for realistic radiance values (< 500)https://www.researchgate.net/publication/335158311_Anisotropic_characteristic_of_artificial_light_at_night_-Systematic_investigation_with_VIIRS_DNB_multi-temporal_observations 
+
+Nighttime light raster data for the Houston, Texas area on February 7 and February 16, 2021 from NASA's Visible Infrared Imaging Radiometer Suite (VIIRS) were sourced through the [Level-1 and Atmospheric Archive & Distribution System Distributed Active Archive Center (LAADS DAAC)](https://ladsweb.modaps.eosdis.nasa.gov/).
+
+Houston area highway data were from [OpenStreetMap](https://planet.openstreetmap.org/), distributed through [Geofabrik](https://download.geofabrik.de/), and prepared as a Geopackage of roads within the Houston metropolitan area.
+
+Data for Houston residences were from [OpenStreetMap](https://planet.openstreetmap.org/), distributed through [Geofabrik](https://download.geofabrik.de/), and prepared as a Geopackage of residences within the Houston metropolitan area.
+
+## Additional Sources
+
+The following paper was used to help inform realistic radiance values in this analysis:
+
+Ma, Ruiqi & Zhang, Qingling & Li, D. & Liu, Shanshan & He, Tao & Zhao, Lixian. (2019). Anisotropic characteristic of artificial light at night -Systematic investigation with VIIRS DNB multi-temporal observations. Remote Sensing of Environment. 233. 10.1016/j.rse.2019.111357.
