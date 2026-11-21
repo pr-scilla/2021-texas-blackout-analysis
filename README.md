@@ -21,16 +21,15 @@ During February 2021, severe winter storms caused widespread power grid outages 
 
 ## Data Access
 
-Data used in this assignment were sourced with permission through the [linked data folder](https://drive.google.com/file/d/1bTk62xwOzBqWmmT791SbYbHxnCdjmBtw/view) on the [EDS 223 Homework Assignment 4 page](https://eds-223-geospatial.github.io/assignments/HW4.html).
+Data used in this assignment were prepared by the EDS 223 intructing team and sourced with permission through the [linked data folder](https://drive.google.com/file/d/1bTk62xwOzBqWmmT791SbYbHxnCdjmBtw/view) on the [EDS 223 Homework Assignment 4 page](https://eds-223-geospatial.github.io/assignments/HW4.html). Downloaded files were saved locally to the `data` folder in the 2021-TEXAS-BLACKOUT-ANALYSIS repository.
 
 ## Data Sources 
 
-Nighttime light raster data for the Houston, Texas area on February 7 and February 16, 2021 from NASA's Visible Infrared Imaging Radiometer Suite (VIIRS) were sourced through the [Level-1 and Atmospheric Archive & Distribution System Distributed Active Archive Center (LAADS DAAC)](https://ladsweb.modaps.eosdis.nasa.gov/).
+[NASA's Visible Infrared Imaging Radiometer Suite (VIIRS)](https://ladsweb.modaps.eosdis.nasa.gov/). (February 7 and 16, 2021). VIIRS/NPP Daily Gridded Day Night Band 15 arc-second Linear Lat Lon Grid Night. Tiles h08v05 and h08v06 [.tif files]. Retrieved November 2026 from course shared Google Drive (https://drive.google.com/file/d/1bTk62xwOzBqWmmT791SbYbHxnCdjmBtw/view)
 
-Houston area highway data were from [OpenStreetMap](https://planet.openstreetmap.org/), distributed through [Geofabrik](https://download.geofabrik.de/), and prepared as a Geopackage of roads within the Houston metropolitan area.
+[OpenStreetMap](https://planet.openstreetmap.org/). (2021). Houston area roads, distributed through [Geofabrik](https://download.geofabrik.de/)[.gpkg file]. Prepared by EDS 223 instructing team and retrieved November 2026 from course shared Google Drive (https://drive.google.com/file/d/1bTk62xwOzBqWmmT791SbYbHxnCdjmBtw/view)
 
-Data for Houston residences were from [OpenStreetMap](https://planet.openstreetmap.org/), distributed through [Geofabrik](https://download.geofabrik.de/), and prepared as a Geopackage of residences within the Houston metropolitan area.
-
+[OpenStreetMap](https://planet.openstreetmap.org/). (2021). Houston area residences, distributed through [Geofabrik](https://download.geofabrik.de/)[.gpkg file]. Prepared by EDS 223 instructing team and retrieved November 2026 from course shared Google Drive (https://drive.google.com/file/d/1bTk62xwOzBqWmmT791SbYbHxnCdjmBtw/view)
 
 ## Contributors
 
